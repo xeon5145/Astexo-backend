@@ -57,3 +57,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # env
 .env
+
+#AI Files
+AI_context.md
