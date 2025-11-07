@@ -12,6 +12,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
     password : process.env.DB_PASS,
     database : process.env.DB_NAME,
     autoLoadEntities: true,
-    synchronize: true, // Keep this true only for development
+    synchronize: false, // Disabled to prevent table modifications
+    logging: false, // Enable SQL query logging
 
 }
