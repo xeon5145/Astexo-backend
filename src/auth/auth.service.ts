@@ -3,13 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthDto } from './auth.dto';
 import { User } from './entities/user.entity';
+import { MailerService } from 'src/mailer/mailer.service';
 
 @Injectable()
 export class AuthService {
     constructor(
         @InjectRepository(User)
         private userRepository: Repository<User>,
-    ) {}
+        private readonly mailerService: MailerService
+    ) { }
 
     async login({ email, password }: AuthDto) {
 
@@ -45,4 +47,46 @@ export class AuthService {
             }
         };
     }
+
+    async register({ name, email, password }: AuthDto) {
+        // Check if user already exists
+        const existingUser = await this.userRepository.findOne({
+            where: { email }
+        });
+
+        if (existingUser) {
+            throw new UnauthorizedException('Email already exists');
+        }
+
+        // Set account_type = 1 for new users as Client Group and role = 0 as business admin 
+        const account_type = 1;
+        const role = 0;
+
+        // Create new user
+        const newUser = this.userRepository.create({
+            name,
+            email,
+            password,
+            account_type,
+            role
+        });
+
+        // Save user to database
+        await this.userRepository.save(newUser);
+
+        const html = `<p>Your Account Created Successfully</p>`;
+        await this.mailerService.sendEmail(email, 'Password Reset', html);
+
+        // Return success response
+        return {
+            message: 'Registration successful',
+            user: {
+                name: newUser.name,
+                email: newUser.email,
+                account_type: newUser.account_type,
+                role: newUser.role
+            }
+        };
+    }
+
 }
