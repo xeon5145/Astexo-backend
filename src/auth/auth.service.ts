@@ -4,13 +4,15 @@ import { Repository } from 'typeorm';
 import { AuthDto } from './auth.dto';
 import { User } from './entities/user.entity';
 import { MailerService } from 'src/mailer/mailer.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
     constructor(
         @InjectRepository(User)
         private userRepository: Repository<User>,
-        private readonly mailerService: MailerService
+        private readonly mailerService: MailerService,
+        private readonly jwtService: JwtService
     ) { }
 
     async login({ email, password }: AuthDto) {
@@ -35,16 +37,22 @@ export class AuthService {
             throw new UnauthorizedException('Invalid credentials');
         }
 
+        const userData = {
+            name: user.name,
+            email: user.email,
+            account_type: user.account_type,
+            role: user.role
+        }
+
+        // Generate JWT token
+        const payload = { sub: user.id, email: user.email, role: user.role };
+        const token = this.jwtService.sign(payload);
+
+
         // Return success response
         return {
             message: 'Login successful',
-            // token: 'fake-jwt-token', // Replace with actual JWT token generation
-            user: {
-                name: user.name,
-                email: user.email,
-                account_type: user.account_type,
-                role: user.role
-            }
+            token: token,
         };
     }
 
