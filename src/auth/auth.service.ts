@@ -36,16 +36,16 @@ export class AuthService {
         if (user.password !== password) {
             throw new UnauthorizedException('Invalid credentials');
         }
+        
 
-        const userData = {
+        // Generate JWT token
+        const payload = {
             name: user.name,
             email: user.email,
             account_type: user.account_type,
-            role: user.role
-        }
-
-        // Generate JWT token
-        const payload = { sub: user.id, email: user.email, role: user.role };
+            role: user.role,
+            id: user.id
+        };
         const token = this.jwtService.sign(payload);
 
 
