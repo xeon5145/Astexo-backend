@@ -56,7 +56,7 @@ export class AuthService {
         };
     }
 
-    async register({ name, email, password }: AuthDto) {
+    async register({ name, email }: AuthDto) {
         // Check if user already exists
         const existingUser = await this.userRepository.findOne({
             where: { email }
@@ -74,7 +74,6 @@ export class AuthService {
         const newUser = this.userRepository.create({
             name,
             email,
-            password,
             account_type,
             role
         });
@@ -83,7 +82,7 @@ export class AuthService {
         await this.userRepository.save(newUser);
 
         const html = `<p>Your Account Created Successfully</p>`;
-        await this.mailerService.sendEmail(email, 'Password Reset', html);
+        await this.mailerService.sendEmail(email, 'Welcome To Astexo', html);
 
         // Return success response
         return {
