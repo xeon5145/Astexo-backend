@@ -7,6 +7,7 @@ import { DatabaseModule } from './database/database.module';
 import { MailerModule } from './mailer/mailer.module';
 import {jwtConfig } from './common/jwt/jwt.config';
 import { JwtModule } from '@nestjs/jwt';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { JwtModule } from '@nestjs/jwt';
     DatabaseModule,
     AuthModule,
     MailerModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [AppService],

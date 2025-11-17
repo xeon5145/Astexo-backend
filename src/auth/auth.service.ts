@@ -3,8 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthDto } from './auth.dto';
 import { User } from './entities/user.entity';
-import { MailerService } from 'src/mailer/mailer.service';
 import { JwtService } from '@nestjs/jwt';
+import { MailerService } from 'src/mailer/mailer.service';
+import { RedisService } from 'src/redis/redis.service';
+import { randomBytes, randomInt } from 'crypto';
+
 
 @Injectable()
 export class AuthService {
@@ -12,7 +15,9 @@ export class AuthService {
         @InjectRepository(User)
         private userRepository: Repository<User>,
         private readonly mailerService: MailerService,
-        private readonly jwtService: JwtService
+        private readonly jwtService: JwtService,
+        private redisService: RedisService,
+        private redisClient: RedisService
     ) { }
 
     async login({ email, password }: AuthDto) {
@@ -36,7 +41,6 @@ export class AuthService {
         if (user.password !== password) {
             throw new UnauthorizedException('Invalid credentials');
         }
-        
 
         // Generate JWT token
         const payload = {
@@ -70,29 +74,32 @@ export class AuthService {
         const account_type = 1;
         const role = 0;
 
-        // Create new user
-        const newUser = this.userRepository.create({
-            name,
-            email,
-            account_type,
-            role
-        });
+        const userOTP = randomInt(100000, 999999).toString();
+        const userData = JSON.stringify(
+            {
+                "name": name,
+                "email": email,
+                "account_type": account_type,
+                "role": role,
+                "otp": userOTP,
+            });
 
         // Save user to database
-        await this.userRepository.save(newUser);
+        // await this.userRepository.save(newUser); will be adding user to db once email is verified
 
-        const html = `<p>Your Account Created Successfully</p>`;
+        // create a redis entry of user data
+        const redis = this.redisService.getClient();
+        const userToken = randomBytes(32).toString('hex');
+        await redis.set(userToken, userData);
+        // create a redis entry of user data
+
+        const html = `<p>Your Account Created Successfully</p><a href="${process.env.FRONT_END_URL}/emal-verification?token=${userToken}">Verify Email</a>`;
         await this.mailerService.sendEmail(email, 'Welcome To Astexo', html);
 
         // Return success response
         return {
+            status: 200,
             message: 'Registration successful',
-            user: {
-                name: newUser.name,
-                email: newUser.email,
-                account_type: newUser.account_type,
-                role: newUser.role
-            }
         };
     }
 
