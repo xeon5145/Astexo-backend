@@ -1,6 +1,6 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthDto } from './auth.dto';
+import { AuthDto, VerificationDto } from './auth.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -15,5 +15,11 @@ export class AuthController {
   async register(@Body() AuthDto: AuthDto) {
     return await this.authService.register(AuthDto);
   }
+
+  @Post('get-token-data')
+  async get_token_data(@Body() VerificationDto: VerificationDto) {
+    return await this.authService.get_token_data(VerificationDto);
+  }
+
 }
 

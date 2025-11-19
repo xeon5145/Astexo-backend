@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AuthDto } from './auth.dto';
+import { AuthDto, VerificationDto } from './auth.dto';
 import { User } from './entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { MailerService } from 'src/mailer/mailer.service';
@@ -90,6 +90,7 @@ export class AuthService {
         // create a redis entry of user data
         const redis = this.redisService.getClient();
         const userToken = randomBytes(32).toString('hex');
+        // await redis.set(userToken, userData, 'EX', 300);
         await redis.set(userToken, userData);
         // create a redis entry of user data
 
@@ -101,6 +102,21 @@ export class AuthService {
             status: 200,
             message: 'Registration successful',
         };
+    }
+
+    async get_token_data({ token }: VerificationDto) {
+        const redis = this.redisService.getClient();
+        const userData = await redis.get(token);
+        console.log(userData);
+
+
+        if (!userData) {
+            throw new UnauthorizedException('Invalid or Expired token');
+        } else {
+            return {
+                "data": JSON.parse(userData)
+            };
+        }
     }
 
 }
