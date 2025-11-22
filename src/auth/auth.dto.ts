@@ -13,3 +13,13 @@ export class LoginDto {
 export class VerificationDto {
     token: string;
 }
+
+export class verifiedDataDto {
+    user: {
+        name: string;
+        email: string;
+        account_type: number;
+        role: number;
+        password: string
+    }
+}

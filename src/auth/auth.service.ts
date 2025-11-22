@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AuthDto, VerificationDto } from './auth.dto';
+import { AuthDto, VerificationDto, verifiedDataDto } from './auth.dto';
 import { User } from './entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { MailerService } from 'src/mailer/mailer.service';
@@ -74,14 +74,12 @@ export class AuthService {
         const account_type = 1;
         const role = 0;
 
-        const userOTP = randomInt(100000, 999999).toString();
         const userData = JSON.stringify(
             {
                 "name": name,
                 "email": email,
                 "account_type": account_type,
                 "role": role,
-                "otp": userOTP,
             });
 
         // Save user to database
@@ -109,7 +107,6 @@ export class AuthService {
         const userData = await redis.get(token);
         console.log(userData);
 
-
         if (!userData) {
             throw new UnauthorizedException('Invalid or Expired token');
         } else {
@@ -117,6 +114,39 @@ export class AuthService {
                 "data": JSON.parse(userData)
             };
         }
+    }
+
+    async create_verified_account({ user }: verifiedDataDto) {
+
+        // Check if user already exists
+        const existingUser = await this.userRepository.findOne({
+            where: { email: user.email }
+        });
+
+        if (existingUser) {
+            throw new UnauthorizedException('Email already exists');
+        }
+
+        // Add encryption to name , email and password before db insertion
+
+        // Create new user
+        const newUser = this.userRepository.create({
+            name: user.name,
+            email: user.email,
+            password: user.password,
+            account_type: user.account_type,
+            role: user.role,
+            status: 1 // Set as active
+        });
+
+        // Save user to database
+        // await this.userRepository.save(newUser);
+
+        // Return success response
+        return {
+            status: 200,
+            message: 'Account created successfully',
+        };
     }
 
 }

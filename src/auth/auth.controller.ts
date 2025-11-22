@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthDto, VerificationDto } from './auth.dto';
+import { AuthDto, VerificationDto, verifiedDataDto } from './auth.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -19,6 +19,11 @@ export class AuthController {
   @Post('get-token-data')
   async get_token_data(@Body() VerificationDto: VerificationDto) {
     return await this.authService.get_token_data(VerificationDto);
+  }
+
+  @Post('create-verified-account')
+  async create_verified_account(@Body() verifiedDataDto: verifiedDataDto) {
+    return await this.authService.create_verified_account(verifiedDataDto);
   }
 
 }
