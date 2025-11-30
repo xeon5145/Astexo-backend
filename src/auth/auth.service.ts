@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthDto, VerificationDto, verifiedDataDto } from './auth.dto';
@@ -11,6 +11,8 @@ import { randomBytes, randomInt } from 'crypto';
 
 @Injectable()
 export class AuthService {
+    private readonly logger = new Logger(AuthService.name);
+
     constructor(
         @InjectRepository(User)
         private userRepository: Repository<User>,
@@ -82,18 +84,14 @@ export class AuthService {
                 "role": role,
             });
 
-        // Save user to database
-        // await this.userRepository.save(newUser); will be adding user to db once email is verified
-
         // create a redis entry of user data
         const redis = this.redisService.getClient();
         const userToken = randomBytes(32).toString('hex');
-        // await redis.set(userToken, userData, 'EX', 300);
-        await redis.set(userToken, userData);
+        await redis.set(userToken, userData, 'EX', 300);
         // create a redis entry of user data
 
-        const html = `<p>Your Account Created Successfully</p><a href="${process.env.FRONT_END_URL}/emal-verification?token=${userToken}">Verify Email</a>`;
-        await this.mailerService.sendEmail(email, 'Welcome To Astexo', html);
+        const html = `<p>We have received a request to create account for Email : "${email}" , To verify you account creation please verify the email at link below .</p><a href="${process.env.FRONT_END_URL}/emal-verification?token=${userToken}">Verify Email</a>`;
+        await this.mailerService.sendEmail(email, 'Astexo : Email Verification', html);
 
         // Return success response
         return {
@@ -105,7 +103,6 @@ export class AuthService {
     async get_token_data({ token }: VerificationDto) {
         const redis = this.redisService.getClient();
         const userData = await redis.get(token);
-        console.log(userData);
 
         if (!userData) {
             throw new UnauthorizedException('Invalid or Expired token');
@@ -117,36 +114,48 @@ export class AuthService {
     }
 
     async create_verified_account({ user }: verifiedDataDto) {
+        try {
+            // Check if user already exists
+            const existingUser = await this.userRepository.findOne({
+                where: { email: user.email }
+            });
 
-        // Check if user already exists
-        const existingUser = await this.userRepository.findOne({
-            where: { email: user.email }
-        });
+            if (existingUser) {
+                throw new UnauthorizedException('Email already exists');
+            }
 
-        if (existingUser) {
-            throw new UnauthorizedException('Email already exists');
+            // Add encryption to name , email and password before db insertion
+
+            // Create new user
+            const newUser = this.userRepository.create({
+                name: user.name,
+                email: user.email,
+                password: user.password,
+                account_type: user.account_type,
+                role: user.role,
+                status: 1 // Set as active
+            });
+
+            // Save user to database
+            await this.userRepository.save(newUser);
+            
+            // Send welcome email
+            const html = `<p>Hi ${user.name} ,</p>
+                <p>Your account has been created successfully.</p>
+                <p>Thank you for joining Astexo.</p>
+                <p>Best regards,</p>
+                <p>Astexo Team</p>
+            `;
+            await this.mailerService.sendEmail(user.email, 'Welcome To Astexo', html);
+
+            // Return success response
+            return {
+                status: 200,
+                message: 'Account verified successfully',
+            };
+        } catch (error) {
+            throw error;
         }
-
-        // Add encryption to name , email and password before db insertion
-
-        // Create new user
-        const newUser = this.userRepository.create({
-            name: user.name,
-            email: user.email,
-            password: user.password,
-            account_type: user.account_type,
-            role: user.role,
-            status: 1 // Set as active
-        });
-
-        // Save user to database
-        // await this.userRepository.save(newUser);
-
-        // Return success response
-        return {
-            status: 200,
-            message: 'Account created successfully',
-        };
     }
 
 }
