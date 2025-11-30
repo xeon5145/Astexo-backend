@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthDto, VerificationDto, verifiedDataDto } from './auth.dto';
+import { AuthDto, VerificationDto, verifiedDataDto ,forgotPasswordDto } from './auth.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -24,6 +24,11 @@ export class AuthController {
   @Post('create-verified-account')
   async create_verified_account(@Body() verifiedDataDto: verifiedDataDto) {
     return await this.authService.create_verified_account(verifiedDataDto);
+  }
+
+  @Post('forgot-password')
+  async forgot_password(@Body() forgotPasswordDto: forgotPasswordDto) {
+    return await this.authService.forgot_password(forgotPasswordDto);
   }
 
 }

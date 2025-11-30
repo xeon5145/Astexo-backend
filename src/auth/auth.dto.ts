@@ -23,3 +23,7 @@ export class verifiedDataDto {
         password: string
     }
 }
+
+export class forgotPasswordDto {
+    email: string;
+}

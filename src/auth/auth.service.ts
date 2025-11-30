@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AuthDto, VerificationDto, verifiedDataDto } from './auth.dto';
+import { AuthDto, VerificationDto, verifiedDataDto ,forgotPasswordDto } from './auth.dto';
 import { User } from './entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { MailerService } from 'src/mailer/mailer.service';
@@ -156,6 +156,32 @@ export class AuthService {
         } catch (error) {
             throw error;
         }
+    }
+
+    async forgot_password({ email }: forgotPasswordDto) {
+        // Check if user already exists
+        const existingUser = await this.userRepository.findOne({
+            where: { email }
+        });
+
+        if (!existingUser) {
+            throw new UnauthorizedException('Email does not exists');
+        }
+
+        // create a redis entry of user data
+        const redis = this.redisService.getClient();
+        const userToken = randomBytes(32).toString('hex');
+        await redis.set(userToken, email, 'EX', 300);
+        // create a redis entry of user data
+
+        const html = `<p>We have received a request to reset password for Email : "${email}" , To reset password please click on link below .</p><a href="${process.env.FRONT_END_URL}/reset-password?token=${userToken}">Reset Password</a>`;
+        await this.mailerService.sendEmail(email, 'Astexo : Reset Password', html);
+
+        // Return success response
+        return {
+            status: 200,
+            message: 'Reset password link sent successfully',
+        };
     }
 
 }
